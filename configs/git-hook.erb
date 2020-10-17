@@ -1,0 +1,76 @@
+#!/usr/bin/env ruby
+
+<%- if hook == :post_commit %>
+# Список файлов, добавленных и изменённых в последнем коммите.
+command = 'git diff --name-only --diff-filter=ACMUX HEAD~1'
+<%- elsif hook == :pre_push %>
+# Список файлов, добавленных и изменённых в текущей ветке относительно `develop`.
+commit  = `git merge-base origin/develop HEAD`
+command = "git diff --name-only --diff-filter=ACMUX #{commit}"
+<%- else %>
+<% raise ArgumentError, hook %>
+<%- end %>
+
+files = `#{command}`.split(/\n/).map do |line|
+  line.gsub(/\\\d{3}/) { |v| v[1..3].to_i(8).chr }.force_encoding('UTF-8')
+end
+
+def grep(files, extensions)
+  files.select { |f| extensions.any? { |ext| f.end_with?(ext) } }
+end
+
+def step(command, files)
+  files.empty? || system("#{command} #{files.join(' ')}")
+end
+
+steps = [
+<%- if answers[:eclint_preset] == 'ruby' %>
+  -> do
+    rb  = files.select { |f| File.extname(f) == '.rb' && f != 'db/schema.rb' }
+    env = File.exist?('Gemfile.local') ? 'BUNDLE_GEMFILE=Gemfile.local : ''
+    puts ' >> Rubocop'
+<%- if hook == :post_commit %>
+    step("#{env} bundle exec rubocop --auto-correct", rb)
+<%- else %>
+    step("#{env} bundle exec rubocop", rb)
+<%- end %>
+  end,
+<%- end %>
+  -> do
+    js = grep(files, %w[.js .vue .js.erb])
+    puts ' >> ESLint'
+<%- if hook == :post_commit %>
+    step('yarn run eslint --fix', js)
+<%- else %>
+    step('yarn run eslint', js)
+<%- end %>
+  end,
+  -> do
+    css = grep(files, %w[.css .sass .scss])
+    puts ' >> StyleLint'
+<%- if hook == :post_commit %>
+    step('yarn run stylelint --fix', css)
+<%- else %>
+    step('yarn run stylelint', css)
+<%- end %>
+  end,
+  -> do
+    puts ' >> ECLint'
+<%- if hook == :post_commit %>
+    step('eclint fix', files)
+<%- else %>
+    step('eclint check', files)
+<%- end %>
+  end,
+]
+
+<%- if hook == :post_commit %>
+steps.each(&:call) unless files.empty?
+exit 0
+<%- else %>
+if files.empty? || steps.all?(&:call)
+  exit 0 # Всё хорошо.
+else
+  exit 1 # Есть ошибки в оформлении кода.
+end
+<%- end %>

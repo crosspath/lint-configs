@@ -1,0 +1,168 @@
+<%
+  file_name_case = {
+    pc: 'pascalcase', cc: 'camelcase', sc: 'snakecase', kc: 'kebabcase'
+  }
+
+  imports = '
+      sort-imports: off,
+      simple-import-sort/sort: [error, {groups: [
+        ["^components", "^\\."], # components
+        ["^[^(?:lib)]"],        # not components and lib
+        ["^lib"],               # lib
+        ["^\\u0000"]            # import without capturing exports
+      ]}]'
+%>
+
+env:
+  browser: true
+  es6: true
+extends:
+  - 'eslint:recommended'
+  - 'plugin:eslint-comments/recommended'
+<%- if answers[:vue] %>
+  - 'plugin:vue/vue3-recommended'
+<%- end %>
+globals:
+  require: readonly
+parserOptions:
+  ecmaVersion: 2020
+  sourceType: module
+plugins:
+<%- if answers[:vue] %>
+  - vue
+<%- end %>
+<%- if answers[:svelte] %>
+  - svelte3
+<%- end %>
+<%- if answers[:filenames] %>
+  - filename-rules
+<%- end %>
+<%- if answers[:import] %>
+  - simple-import-sort
+<%- end %>
+rules: {
+  no-console: error,
+  no-template-curly-in-string: error,
+  no-unreachable-loop: error,
+  array-callback-return: error,
+  block-scoped-var: error,
+  complexity: warn,
+  consistent-return: error,
+  curly: [error, multi, consistent],
+  default-case-last: error,
+  default-param-last: error,
+  dot-notation: error,
+  no-alert: error,
+  no-case-declarations: off,
+  no-constructor-return: error,
+  no-empty-function: error,
+  no-eval: warn,
+  no-extend-native: error,
+  no-extra-label: error,
+  no-fallthrough: [warn, {commentPattern: "дальше"}],
+  no-floating-decimal: error,
+  no-implicit-coercion: error,
+  no-implicit-globals: error,
+  no-implied-eval: error,
+  no-invalid-this: warn,
+  no-labels: error,
+  no-lone-blocks: error,
+  no-new-func: warn,
+  no-proto: error,
+  no-return-assign: error,
+  no-script-url: error,
+  no-self-compare: error,
+  no-sequences: error,
+  no-throw-literal: error,
+  no-unmodified-loop-condition: warn,
+  no-useless-call: warn,
+  no-useless-concat: error,
+  no-useless-escape: error,
+  no-useless-return: error,
+  yoda: warn,
+  no-label-var: error,
+  no-undef-init: error,
+  no-undefined: error,
+  no-use-before-define: error,
+  no-unused-vars: [warn, {vars: local, args: all, argsIgnorePattern: "^_" }],
+  array-bracket-newline: [error, {multiline: true}],
+  array-bracket-spacing: [error, never],
+  array-element-newline: [error, consistent],
+  block-spacing: [error, always],
+  comma-dangle: [error, always-multiline],
+  comma-spacing: [error, {before: false, after: true}],
+  computed-property-spacing: error,
+  eol-last: error,
+  func-call-spacing: error,
+  function-call-argument-newline: [error, consistent],
+  indent: [error, 2],
+  jsx-quotes: [error, prefer-double],
+  key-spacing: [warn, {align: {on: value}, multiLine: {mode: minimum}}],
+  keyword-spacing: [error, {before: true, after: true}],
+  linebreak-style: [error, unix],
+  max-depth: [error, 6],
+  max-statements-per-line: error,
+  no-lonely-if: error,
+  no-multiple-empty-lines: [error, {max: 1}],
+  no-tabs: error,
+  no-trailing-spaces: error,
+  no-whitespace-before-property: error,
+  nonblock-statement-body-position: [error, below],
+  object-curly-newline: [error, {multiline: true}],
+  object-curly-spacing: [error, never],
+  padded-blocks: [error, never],
+  quotes: [error, single],
+  space-before-function-paren: [error, never],
+  space-in-parens: [error, never],
+  space-infix-ops: error,
+  spaced-comment: error,
+  switch-colon-spacing: error,
+  arrow-parens: [error, as-needed],
+  arrow-spacing: error,
+  no-duplicate-imports: error,
+  no-var: error,
+  prefer-const: error,
+  prefer-rest-params: warn<% if answers[:vue] %>,
+  vue/no-deprecated-dollar-listeners-api: off,
+  vue/no-deprecated-dollar-scopedslots-api: off,
+  vue/no-unused-components: warn,
+  vue/no-unused-vars: warn,
+  vue/html-closing-bracket-newline: error,
+  vue/html-indent: [error, 2, {attribute: 1, baseIndent: 1, closeBracket: 0, alignAttributesVertically: false}],
+  vue/html-self-closing: [error, {html: {void: always, normal: never, component: always}}],
+  vue/max-attributes-per-line: [error, {singleline: 4, multiline: {max: 5, allowFirstLine: true}}],
+  vue/mustache-interpolation-spacing: [error, never],
+  vue/no-multi-spaces: [error, {ignoreProperties: true}],
+  vue/require-default-prop: off,
+  vue/require-explicit-emits: warn,
+  vue/require-prop-types: off,
+  vue/singleline-html-element-content-newline: off,
+  vue/component-tags-order: [error, {order: [template, script, style]}],
+  vue/no-v-html: warn,
+  vue/component-name-in-template-casing: error,
+  vue/no-empty-component-block: error,
+  vue/no-unregistered-components: [warn, {ignorePatterns: [\'trix-editor\']}],
+  vue/no-unused-properties: warn,
+  vue/no-useless-mustaches: warn,
+  vue/no-useless-v-bind: error,
+  vue/padding-line-between-blocks: error,
+  vue/require-direct-export: error,
+  vue/require-name-property: off,
+  vue/script-indent: [error, 2, {baseIndent: 1, switchCase: 1}],
+  vue/v-on-function-call: error
+<%- end %><% if answers[:filenames] %>,
+  filename-rules/match: [error, <%= file_name_case[answers[:filenames]] %>]
+<%- end %>
+}
+overrides: [
+  <% if answers[:vue] %>{
+    files: ['*.vue'], rules: {
+      indent: off<% if answers[:import] %>,<%= imports %><% end %>
+    }
+  }<% if answers[:svelte] %>,<%- end %><%- end %>
+  <% if answers[:svelte] %>{
+    files: ['*.svelte'], processor: 'svelte3/svelte3'<% if answers[:import] %>,
+    rules: {<%= imports %>
+    }<% end %>
+  }<%- end %>
+]
