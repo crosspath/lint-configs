@@ -1,3 +1,6 @@
+require 'erubi'
+require 'json'
+
 def ask(question, options = {})
   if options.empty?
     print question, ' '
@@ -29,6 +32,20 @@ def yes?(question)
   end
 end
 
+def mkdir_p(dir)
+  return if dir.gsub('.', '').gsub(File::SEPARATOR, '').empty?
+  path = dir.split(File::SEPARATOR)
+  if path.size == 1
+    Dir.mkdir(dir) unless Dir.exist?(dir)
+    return
+  end
+  path.reduce do |a, e|
+    current = a + File::SEPARATOR + e
+    Dir.mkdir(current) unless Dir.exist?(current)
+    current
+  end
+end
+
 def erb(save_to, read_from, **locals)
   b = binding
   locals.each { |k, v| b.local_variable_set(k, v) }
@@ -37,11 +54,16 @@ def erb(save_to, read_from, **locals)
 
   result = b.eval(Erubi::Engine.new(File.read(file_name)).src)
 
-  File.write(save_to, result)
+  mkdir_p(File.dirname(save_to))
+  File.write(save_to, result, mode: 'w')
 end
 
 answers = {}
 
+answers[:package] = ask('Package manager', {
+  npm:  'NPM',
+  yarn: 'Yarn',
+})
 answers[:git_hooks] = yes?('Add git hooks?')
 answers[:eclint] = yes?('Add ECLint?')
 if answers[:eclint]
@@ -84,34 +106,40 @@ dev_packages = {
   stylelint:     'stylelint',
 }.select { |k, _| answers[k] }.values.join(' ')
 
-`yarn add #{dev_packages} --dev` unless dev_packages.empty?
+if answers[:package] == 'yarn'
+  `yarn add #{dev_packages} --dev` unless dev_packages.empty?
+else
+  `npm install #{dev_packages} -D` unless dev_packages.empty?
+end
 
 if answers[:git_hooks]
-  `yarn config set gitHooks --json '{\
-    "post-commit": "ruby hooks/post-commit.rb",\
-    "pre-push": "ruby hooks/pre-push.rb"\
-  }'`
+  json = JSON.parse(File.read('package.json'))
+  json['gitHooks'] = {
+    "post-commit": "ruby hooks/post-commit.rb",
+    "pre-push": "ruby hooks/pre-push.rb"
+  }
+  File.write('package.json', JSON.pretty_generate(json))
 
   erb(
-    'git-hook.erb', 'hooks/post-commit.rb',
+    'hooks/post-commit.rb', 'git-hook.erb',
     hook: :post_commit, answers: answers
   )
   erb(
-    'git-hook.erb', 'hooks/pre-push.rb',
+    'hooks/pre-push.rb', 'git-hook.erb',
     hook: :pre_push, answers: answers
   )
 end
 
 if answers[:eclint]
-  erb('editor_config.erb', '.editorconfig', answers: answers)
+  erb('.editorconfig', 'editor_config.erb', answers: answers)
 end
 
 if answers[:eslint]
-  erb('eslint_rc.erb', '.eslintrc.yml', answers: answers)
+  erb('.eslintrc.yml', 'eslint_rc.erb', answers: answers)
 end
 
 if answers[:stylelint]
-  erb('stylelint_rc.erb', '.stylelintrc.yml')
+  erb('.stylelintrc.yml', 'stylelint_rc.erb')
 end
 
 puts 'Done'

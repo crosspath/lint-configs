@@ -1,78 +1,92 @@
-<%
-  js_files = "#{answers[:vue] ? 'vue,' : ''}#{answers[:svelte] ? 'svelte,' : ''}"
-%>
+<%-
+  presets = []
 
+  if answers[:eclint_preset] == 'ruby'
+    presets << {
+      files: '*.{rb,yml,ru,slim,rake,erb}',
+      charset: 'utf-8',
+      end_of_line: :lf,
+      insert_final_newline: true,
+      indent_style: :space,
+      indent_size: 2,
+      max_line_length: 80,
+      trim_trailing_whitespace: true
+    }
+    presets << {
+      files: '{Capfile,Gemfile*,Procfile*,Rakefile,.env*,.rspec,.ruby-version}',
+      charset: 'utf-8',
+      end_of_line: :lf,
+      insert_final_newline: true,
+      indent_style: :space,
+      indent_size: 2,
+      max_line_length: 80,
+      trim_trailing_whitespace: true
+    }
+    presets << {
+      files: '{{bin,log,public,storage,tmp,vendor}/**,db/schema.rb}',
+      charset: :unset,
+      end_of_line: :unset,
+      insert_final_newline: :unset,
+      indent_style: :unset,
+      indent_size: :unset,
+      max_line_length: :unset,
+      trim_trailing_whitespace: :unset
+    }
+  end
+
+  js_files = "#{answers[:vue] ? 'vue,' : ''}#{answers[:svelte] ? 'svelte,' : ''}"
+
+  presets << {
+    files: "*.{#{js_files}js,json,scss,svg,sass}",
+    charset: 'utf-8',
+    end_of_line: :lf,
+    insert_final_newline: true,
+    indent_style: :space,
+    indent_size: 2,
+    max_line_length: 80,
+    trim_trailing_whitespace: true
+  }
+  presets << {
+    files: '{*.md,.editorconfig}',
+    charset: 'utf-8',
+    end_of_line: :lf,
+    insert_final_newline: true,
+    indent_style: :space,
+    indent_size: :unset,
+    max_line_length: :unset,
+    trim_trailing_whitespace: false
+  }
+  presets << {
+    files: '.git*',
+    charset: 'utf-8',
+    end_of_line: :lf,
+    insert_final_newline: true,
+    indent_style: :space,
+    indent_size: 2,
+    max_line_length: 80,
+    trim_trailing_whitespace: true
+  }
+  presets << {
+    files: '{{.git,node_modules}/**,*.lock}',
+    charset: :unset,
+    end_of_line: :unset,
+    insert_final_newline: :unset,
+    indent_style: :unset,
+    indent_size: :unset,
+    max_line_length: :unset,
+    trim_trailing_whitespace: :unset
+  }
+%>
 # Run in IRB console to get list of file extensions kept in the repository:
 #
 # ext = `git ls-files`.split("\n").group_by{|x|File.extname(x)};
 # ext.map{|x,v|[x,v.size]}.sort_by{|x|-x.last}.each{|k,v|puts "#{k}: #{v}"};nil
+
 root = true
+<% presets.each do |preset| %>
 
-<%- if answers[:eclint_preset] == 'ruby' %>
-[*.{rb,yml,ru,slim,rake,erb}]
-charset = utf-8
-end_of_line = lf
-insert_final_newline = true
-indent_style = space
-indent_size = 2
-max_line_length = 80
-trim_trailing_whitespace = true
-<%- end %>
-
-[*.{<%= js_files %>js,json,scss,svg,sass}]
-charset = utf-8
-end_of_line = lf
-insert_final_newline = true
-indent_style = space
-indent_size = 2
-max_line_length = 80
-trim_trailing_whitespace = true
-
-<%- if answers[:eclint_preset] == 'ruby' %>
-[{Capfile,Gemfile*,Procfile*,Rakefile,.env*,.rspec,.ruby-version}]
-charset = utf-8
-end_of_line = lf
-insert_final_newline = true
-indent_style = space
-indent_size = 2
-max_line_length = 80
-trim_trailing_whitespace = true
-<%- end %>
-
-[{*.md,.editorconfig}]
-charset = utf-8
-end_of_line = lf
-insert_final_newline = true
-indent_style = space
-indent_size = unset
-max_line_length = unset
-trim_trailing_whitespace = false
-
-[.git*]
-charset = utf-8
-end_of_line = lf
-insert_final_newline = true
-indent_style = space
-indent_size = 2
-max_line_length = 80
-trim_trailing_whitespace = true
-
-[{{.git,node_modules}/**,*.lock}]
-charset = unset
-end_of_line = unset
-insert_final_newline = unset
-indent_style = unset
-indent_size = unset
-max_line_length = unset
-trim_trailing_whitespace = unset
-
-<%- if answers[:eclint_preset] == 'ruby' %>
-[{{bin,log,public,storage,tmp,vendor}/**,db/schema.rb}]
-charset = unset
-end_of_line = unset
-insert_final_newline = unset
-indent_style = unset
-indent_size = unset
-max_line_length = unset
-trim_trailing_whitespace = unset
+[<%= preset[:files] %>]
+<% (preset.keys - [:files]).each do |key| %>
+<%= key %> = <%= preset[key] %>
+<% end %>
 <%- end %>

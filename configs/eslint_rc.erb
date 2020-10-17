@@ -6,13 +6,12 @@
   imports = '
       sort-imports: off,
       simple-import-sort/sort: [error, {groups: [
-        ["^components", "^\\."], # components
-        ["^[^(?:lib)]"],        # not components and lib
-        ["^lib"],               # lib
-        ["^\\u0000"]            # import without capturing exports
+        ["^components", "^\\\\."], # components
+        ["^[^(?:lib)]"],         # not components and lib
+        ["^lib"],                # lib
+        ["^\\\\u0000"]             # import without capturing exports
       ]}]'
 %>
-
 env:
   browser: true
   es6: true
@@ -151,16 +150,18 @@ rules: {
   vue/script-indent: [error, 2, {baseIndent: 1, switchCase: 1}],
   vue/v-on-function-call: error
 <%- end %><% if answers[:filenames] %>,
-  filename-rules/match: [error, <%= file_name_case[answers[:filenames]] %>]
+  filename-rules/match: [error, <%=
+    file_name_case[answers[:filenames].to_sym]
+  %>]
 <%- end %>
 }
-overrides: [
-  <% if answers[:vue] %>{
+overrides: [<% if answers[:vue] %>
+  {
     files: ['*.vue'], rules: {
       indent: off<% if answers[:import] %>,<%= imports %><% end %>
     }
-  }<% if answers[:svelte] %>,<%- end %><%- end %>
-  <% if answers[:svelte] %>{
+  }<% if answers[:svelte] %>,<%- end %><%- end %><% if answers[:svelte] %>
+  {
     files: ['*.svelte'], processor: 'svelte3/svelte3'<% if answers[:import] %>,
     rules: {<%= imports %>
     }<% end %>
