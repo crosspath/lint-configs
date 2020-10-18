@@ -4,7 +4,7 @@ require 'json'
 def ask(question, options = {})
   if options.empty?
     print question, ' '
-    gets.chomp
+    gets.strip
   else
     options.transform_keys!(&:to_s)
     align = options.keys.max { |k1, k2| k1.size <=> k2.size }.size
@@ -91,6 +91,8 @@ if answers[:eslint] && (answers[:vue] || answers[:svelte])
   )
 end
 answers[:stylelint] = yes?('Add StyleLint?')
+answers[:branch] = ask('Main git branch? (master/...)')
+answers[:branch] = 'master' if answers[:branch].empty?
 
 answers[:vue_eslint] = answers[:vue] && answers[:eslint]
 answers[:svelte_eslint] = answers[:svelte] && answers[:eslint]

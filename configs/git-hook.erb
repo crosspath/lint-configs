@@ -1,11 +1,15 @@
+<%
+  runner = answers[:package] == 'yarn' ? 'yarn run' : 'npx'
+%>
 #!/usr/bin/env ruby
 
 <%- if hook == :post_commit %>
 # Список файлов, добавленных и изменённых в последнем коммите.
 command = 'git diff --name-only --diff-filter=ACMUX HEAD~1'
 <%- elsif hook == :pre_push %>
-# Список файлов, добавленных и изменённых в текущей ветке относительно `develop`.
-commit  = `git merge-base origin/develop HEAD`
+# Список файлов, добавленных и изменённых в текущей ветке
+# относительно `<%= answers[:branch] %>`.
+commit  = `git merge-base origin/<%= answers[:branch] %> HEAD`
 command = "git diff --name-only --diff-filter=ACMUX #{commit}"
 <%- else %>
 <% raise ArgumentError, hook %>
@@ -20,14 +24,17 @@ def grep(files, extensions)
 end
 
 def step(command, files)
-  files.empty? || system("#{command} #{files.join(' ')}")
+  return true if files.empty?
+  output = `#{command} #{files.join(' ')}`
+  puts output
+  $?.success? # $?.exitstatus == 0
 end
 
-steps = [
+parallel_steps = [
 <%- if answers[:eclint_preset] == 'ruby' %>
-  -> do
+  -> (files) do
     rb  = files.select { |f| File.extname(f) == '.rb' && f != 'db/schema.rb' }
-    env = File.exist?('Gemfile.local') ? 'BUNDLE_GEMFILE=Gemfile.local : ''
+    env = File.exist?('Gemfile.local') ? 'BUNDLE_GEMFILE=Gemfile.local' : ''
     puts ' >> Rubocop'
 <%- if hook == :post_commit %>
     step("#{env} bundle exec rubocop --auto-correct", rb)
@@ -36,41 +43,57 @@ steps = [
 <%- end %>
   end,
 <%- end %>
-  -> do
+  -> (files) do
     js = grep(files, %w[.js .vue .js.erb])
     puts ' >> ESLint'
 <%- if hook == :post_commit %>
-    step('yarn run eslint --fix', js)
+    step('<%= runner %> eslint --fix', js)
 <%- else %>
-    step('yarn run eslint', js)
+    step('<%= runner %> eslint', js)
 <%- end %>
   end,
-  -> do
+  -> (files) do
     css = grep(files, %w[.css .sass .scss])
     puts ' >> StyleLint'
 <%- if hook == :post_commit %>
-    step('yarn run stylelint --fix', css)
+    step('<%= runner %> stylelint --fix', css)
 <%- else %>
-    step('yarn run stylelint', css)
+    step('<%= runner %> stylelint', css)
 <%- end %>
   end,
-  -> do
+]
+
+final_steps = [
+  -> (files) do
     puts ' >> ECLint'
 <%- if hook == :post_commit %>
-    step('eclint fix', files)
+    step('<%= runner %> eclint fix', files)
 <%- else %>
-    step('eclint check', files)
+    step('<%= runner %> eclint check', files)
 <%- end %>
   end,
 ]
 
 <%- if hook == :post_commit %>
-steps.each(&:call) unless files.empty?
+unless files.empty?
+  threads = parallel_steps.map do |step|
+    Thread.new(step, files) { |step, files| step.call(files) }
+  end
+  threads.each(&:join)
+  final_steps.each { |step| step.call(files) }
+end
 exit 0
 <%- else %>
-if files.empty? || steps.all?(&:call)
-  exit 0 # Всё хорошо.
+if files.empty?
+  exit 0
 else
-  exit 1 # Есть ошибки в оформлении кода.
+  threads = parallel_steps.map do |step|
+    Thread.new(step, files) { |step, files| step.call(files) }
+  end
+  result = threads.all? { |t| t.join.value }
+  result &&= final_steps.all? { |step| step.call(files) }
+  exit(result ? 0 : 1)
+  # 0: Всё хорошо.
+  # 1: Есть ошибки в оформлении кода.
 end
 <%- end %>
