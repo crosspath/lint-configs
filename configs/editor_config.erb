@@ -34,10 +34,13 @@
     }
   end
 
-  js_files = "#{answers[:vue] ? 'vue,' : ''}#{answers[:svelte] ? 'svelte,' : ''}"
+  js_files = ''
+  js_files << 'vue,' if answers[:vue]
+  js_files << 'svelte,' if answers[:svelte]
+  js_files << 'ts,' if answers[:ts]
 
   presets << {
-    files: "*.{#{js_files}js,json,scss,svg,sass}",
+    files: "*.{#{js_files}js,json,scss,svg,sass,html}",
     charset: 'utf-8',
     end_of_line: :lf,
     insert_final_newline: true,

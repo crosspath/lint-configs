@@ -60,11 +60,15 @@ end
 
 answers = {}
 
+answers[:git_hooks] = yes?('Add git hooks?')
+answers[:branch] = ask('Main git branch? Press Enter to use branch "master".')
+answers[:branch] = 'master' if answers[:branch].empty?
+
 answers[:package] = ask('Package manager', {
   npm:  'NPM',
   yarn: 'Yarn',
 })
-answers[:git_hooks] = yes?('Add git hooks?')
+
 answers[:eclint] = yes?('Add ECLint?')
 if answers[:eclint]
   answers[:eclint_preset] = ask('Preset for ECLint', {
@@ -72,6 +76,7 @@ if answers[:eclint]
     ruby: 'Ruby on Rails project',
   })
 end
+
 answers[:eslint] = yes?('Add ESLint?')
 if answers[:eslint]
   answers[:filenames] = ask('Add ESLint plugin for filenames?', {
@@ -83,17 +88,20 @@ if answers[:eslint]
   })
   answers[:filenames] = false if answers[:filenames] == 'no'
 end
+
+answers[:ts] = yes?('Using TypeScript?')
 answers[:vue] = yes?('Using Vue?')
 answers[:svelte] = yes?('Using Svelte?')
-if answers[:eslint] && (answers[:vue] || answers[:svelte])
+if answers[:eslint] && answers[:vue]
   answers[:import] = yes?(
     'Add ESLint plugin for sorting imports in components?'
   )
 end
-answers[:stylelint] = yes?('Add StyleLint?')
-answers[:branch] = ask('Main git branch? (master/...)')
-answers[:branch] = 'master' if answers[:branch].empty?
 
+answers[:stylelint] = yes?('Add StyleLint?')
+
+answers[:ts_svelte] = answers[:ts] && answers[:svelte]
+answers[:ts_eslint] = answers[:ts] && answers[:eslint]
 answers[:vue_eslint] = answers[:vue] && answers[:eslint]
 answers[:svelte_eslint] = answers[:svelte] && answers[:eslint]
 
@@ -106,6 +114,9 @@ dev_packages = {
   vue_eslint:    'eslint-plugin-vue',
   svelte_eslint: 'eslint-plugin-svelte3',
   stylelint:     'stylelint',
+  ts:            'typescript tslib',
+  ts_eslint:     '@typescript-eslint/eslint-plugin @typescript-eslint/parser',
+  ts_svelte:     '@tsconfig/svelte',
 }.select { |k, _| answers[k] }.values.join(' ')
 
 if answers[:package] == 'yarn'

@@ -23,9 +23,9 @@ def grep(files, extensions)
   files.select { |f| extensions.any? { |ext| f.end_with?(ext) } }
 end
 
-def step(command, files)
+def step(title, command, files)
   return true if files.empty?
-  output = `#{command} #{files.join(' ')}`
+  output = `echo " >> #{title}"; #{command} #{files.join(' ')}`
   puts output
   $?.success? # $?.exitstatus == 0
 end
@@ -35,41 +35,37 @@ parallel_steps = [
   -> (files) do
     rb  = files.select { |f| File.extname(f) == '.rb' && f != 'db/schema.rb' }
     env = File.exist?('Gemfile.local') ? 'BUNDLE_GEMFILE=Gemfile.local' : ''
-    puts ' >> Rubocop'
 <%- if hook == :post_commit %>
-    step("#{env} bundle exec rubocop --auto-correct", rb)
+    step('Rubocop', "#{env} bundle exec rubocop --auto-correct", rb)
 <%- else %>
-    step("#{env} bundle exec rubocop", rb)
+    step('Rubocop', "#{env} bundle exec rubocop", rb)
 <%- end %>
   end,
 <%- end %>
   -> (files) do
     js = grep(files, %w[.js .vue .js.erb])
-    puts ' >> ESLint'
 <%- if hook == :post_commit %>
-    step('<%= runner %> eslint --fix', js)
+    step('ESLint', '<%= runner %> eslint --fix', js)
 <%- else %>
-    step('<%= runner %> eslint', js)
+    step('ESLint', '<%= runner %> eslint', js)
 <%- end %>
   end,
   -> (files) do
     css = grep(files, %w[.css .sass .scss])
-    puts ' >> StyleLint'
 <%- if hook == :post_commit %>
-    step('<%= runner %> stylelint --fix', css)
+    step('StyleLint', '<%= runner %> stylelint --fix', css)
 <%- else %>
-    step('<%= runner %> stylelint', css)
+    step('StyleLint', '<%= runner %> stylelint', css)
 <%- end %>
   end,
 ]
 
 final_steps = [
   -> (files) do
-    puts ' >> ECLint'
 <%- if hook == :post_commit %>
-    step('<%= runner %> eclint fix', files)
+    step('ECLint', '<%= runner %> eclint fix', files)
 <%- else %>
-    step('<%= runner %> eclint check', files)
+    step('ECLint', '<%= runner %> eclint check', files)
 <%- end %>
   end,
 ]
