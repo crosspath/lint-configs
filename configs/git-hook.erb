@@ -23,10 +23,14 @@ def grep(files, extensions)
   files.select { |f| extensions.any? { |ext| f.end_with?(ext) } }
 end
 
+def strip_yarn_output(output)
+  output.split("\n").reject { |line| line =~ /^yarn run|\$ / }.join("\n")
+end
+
 def step(title, command, files)
   return true if files.empty?
   output = `echo " >> #{title}"; #{command} #{files.join(' ')}`
-  puts output
+  puts strip_yarn_output(output)
   $?.success? # $?.exitstatus == 0
 end
 
