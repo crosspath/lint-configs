@@ -29,7 +29,7 @@ end
 
 def step(title, command, files)
   return true if files.empty?
-  output = `echo " >> #{title}"; #{command} #{files.join(' ')}`
+  output = `echo " >> #{title}"; #{command} #{files.join('" "')}`
   puts strip_yarn_output(output)
   $?.success? # $?.exitstatus == 0
 end
